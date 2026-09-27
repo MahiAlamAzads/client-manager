@@ -1,43 +1,44 @@
 // src/server.ts
-import express, { Request, Response } from "express";
 import dotenv from "dotenv";
-import { authenticateGoogleUser } from "./middleware/auth";
+dotenv.config(); // Call config as early as possible
+
+import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import morgan from "morgan";
 import apiRouter from "./api";
-dotenv.config();
+import { errorHandler } from "./middleware/errorHandler";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Global Middleware
 app.use(express.json());
 app.use(morgan("dev"));
 app.use(
   cors({
-    origin: "http://localhost:5173",
+    origin: process.env.CLIENT_URL || "http://localhost:5173",
     credentials: true,
   }),
 );
 
+// Public Health Check
+app.get("/health", (req: Request, res: Response) => {
+  res.status(200).json({ status: "ok", message: "Server is healthy" });
+});
+
+// Mount all API routes (move /me inside apiRouter)
 app.use("/api", apiRouter);
 
-// Public route
-app.get("/health", (req: Request, res: Response) => {
-  res.json({ message: "This is an open endpoint" });
-});
-
-// Protected route — requires valid Google ID token
-app.get("/api/me", authenticateGoogleUser, (req: Request, res: Response) => {
-  // Access verified identity attributes directly:
-  const { sub, email, name, picture } = req.user!;
-  console.log(req.user);
-  res.json({
-    googleId: sub,
-    email,
-    name,
-    picture,
+// 404 Fallback
+app.use((req: Request, res: Response) => {
+  res.status(404).json({
+    success: false,
+    message: `Route ${req.method} ${req.originalUrl} not found`,
   });
 });
+
+// Centralized Error Handler (Always last)
+app.use(errorHandler);
 
 app.listen(PORT, () => {
   console.log(`Server listening on http://localhost:${PORT}`);
