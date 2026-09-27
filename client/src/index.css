@@ -1,0 +1,23 @@
+@import "tailwindcss";
+
+body {
+  font-family: "Inter", sans-serif;
+}
+.font-mono-code {
+  font-family: "JetBrains Mono", monospace;
+}
+/* Minimalist Dark Scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #09090b;
+}
+::-webkit-scrollbar-thumb {
+  background: #27272a;
+  border-radius: 9999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #3f3f46;
+}
