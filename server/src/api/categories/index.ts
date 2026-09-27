@@ -13,7 +13,8 @@ interface CategoryPayload {
 apiCategoriesRouter.get(
   "/",
   asyncHandler(async (req, res) => {
-    res.json({ data: await pool.query(``) });
+    const { rows } = await pool.query("SELECT * FROM categories");
+    res.status(200).json({ success: true, data: rows });
   }),
 );
 
@@ -40,6 +41,32 @@ apiCategoriesRouter.post(
     res
       .status(201)
       .json({ message: "Category created", data: payload, rows: rows[0] });
+  }),
+);
+
+apiCategoriesRouter.delete(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const { rows, rowCount } = await pool.query(
+      "DELETE FROM categories WHERE id = $1 RETURNING *",
+      [id],
+    );
+
+    if (rowCount === 0) {
+      res.status(404).json({
+        success: false,
+        message: `Category with id ${id} not found`,
+      });
+      return;
+    }
+
+    res.status(200).json({
+      success: true,
+      message: "Category deleted successfully",
+      data: rows[0],
+    });
   }),
 );
 
