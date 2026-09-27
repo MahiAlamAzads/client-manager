@@ -1,7 +1,7 @@
 import express from "express";
 import { Router } from "express";
 import { pool } from "../../lib/db";
-
+import { asyncHandler } from "../../utils/asyncHandler";
 
 const apiProjectsRouter = Router();
 
@@ -13,10 +13,19 @@ interface ProjectPayload {
   unitBudget: number;
 }
 
-apiProjectsRouter.get("/", async (req, res) => {
-  //   const {};
-  res.json({ data: await pool.query(`SELECT * FROM projects`) });
-});
+apiProjectsRouter.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    // let query = "SELECT * FROM projects";
+    // const { limit, sort } = req.query;
+    // if (limit && Number(limit) > 0) {
+    //   query += ` LIMIT ${Number(limit)}`;
+    // }
+
+    const { rows } = await pool.query("SELECT * FROM projects ORDER BY id ASC");
+    res.status(200).json({ success: true, data: rows });
+  }),
+);
 
 apiProjectsRouter.post("/", async (req, res) => {
   const payload: ProjectPayload = req.body;
