@@ -1,6 +1,7 @@
 import express from "express";
 import { Router } from "express";
 import { pool } from "../../lib/db";
+import { asyncHandler } from "../../utils/asyncHandler";
 
 const apiCategoriesRouter = Router();
 
@@ -9,16 +10,21 @@ interface CategoryPayload {
   discription: string;
 }
 
-apiCategoriesRouter.get("/", async (req, res) => {
-  res.json({ data: await pool.query(``) });
-});
+apiCategoriesRouter.get(
+  "/",
+  asyncHandler(async (req, res) => {
+    res.json({ data: await pool.query(``) });
+  }),
+);
 
-apiCategoriesRouter.post("/", async (req, res) => {
-  const payload: CategoryPayload = req.body;
-  if (!payload.name) {
-    return res.status(501).send("validation failed");
-  }
-  const insertCategoryQuery = `
+apiCategoriesRouter.post(
+  "/",
+  asyncHandler(async (req, res) => {
+    const payload: CategoryPayload = req.body;
+    if (!payload.name) {
+      return res.status(501).send("validation failed");
+    }
+    const insertCategoryQuery = `
   INSERT INTO categories (
     name,
     description
@@ -26,14 +32,15 @@ apiCategoriesRouter.post("/", async (req, res) => {
     $1, $2
   )
   RETURNING *;
-`;
+  `;
 
-  const values = [payload.name, payload.discription];
-  const { rows } = await pool.query(insertCategoryQuery, values);
+    const values = [payload.name, payload.discription];
+    const { rows } = await pool.query(insertCategoryQuery, values);
 
-  res
-    .status(201)
-    .json({ message: "Category created", data: payload, rows: rows[0] });
-});
+    res
+      .status(201)
+      .json({ message: "Category created", data: payload, rows: rows[0] });
+  }),
+);
 
 export default apiCategoriesRouter;
