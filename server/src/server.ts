@@ -3,13 +3,15 @@ import express, { Request, Response } from "express";
 import dotenv from "dotenv";
 import { authenticateGoogleUser } from "./middleware/auth";
 import cors from "cors";
-
+import morgan from "morgan";
+import apiRouter from "./api";
 dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
+app.use(morgan("dev"));
 app.use(
   cors({
     origin: "http://localhost:5173",
@@ -17,8 +19,10 @@ app.use(
   }),
 );
 
+app.use("/api", apiRouter);
+
 // Public route
-app.get("/api/public", (req: Request, res: Response) => {
+app.get("/health", (req: Request, res: Response) => {
   res.json({ message: "This is an open endpoint" });
 });
 
