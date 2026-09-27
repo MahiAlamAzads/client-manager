@@ -13,12 +13,12 @@ interface ProjectPayload {
   unitBudget: number;
 }
 
-apiProjectsRouter.get("/projects", async (req, res) => {
+apiProjectsRouter.get("/", async (req, res) => {
   //   const {};
   res.json({ data: await pool.query(`SELECT * FROM projects`) });
 });
 
-apiProjectsRouter.post("/projects", async (req, res) => {
+apiProjectsRouter.post("/", async (req, res) => {
   const payload: ProjectPayload = req.body;
   const insertProjectQuery = `
   INSERT INTO projects (

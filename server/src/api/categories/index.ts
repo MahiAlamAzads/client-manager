@@ -9,11 +9,11 @@ interface CategoryPayload {
   discription: string;
 }
 
-apiCategoriesRouter.get("/categories", async (req, res) => {
+apiCategoriesRouter.get("/", async (req, res) => {
   res.json({ data: await pool.query(``) });
 });
 
-apiCategoriesRouter.post("/categories", async (req, res) => {
+apiCategoriesRouter.post("/", async (req, res) => {
   const payload: CategoryPayload = req.body;
   if (!payload.name) {
     return res.status(501).send("validation failed");
