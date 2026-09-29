@@ -5,7 +5,6 @@ import { asyncHandler } from "../../utils/asyncHandler";
 
 const apiProjectsRouter = Router();
 
-
 interface ProjectPayload {
   name: string;
   client: string;
@@ -17,18 +16,40 @@ interface ProjectPayload {
 apiProjectsRouter.get(
   "/",
   asyncHandler(async (req, res) => {
+    // sort starts
+    const sortByParam = req.query.sortBy ? String(req.query.sortBy) : null;
+    const orderParam = req.query.order ? String(req.query.order) : null;
+    // sort ends
+
     let query = "SELECT * FROM projects";
-    
-    const { limit, sortBy } = req.query;
 
-    // if(sortBy)
-
-    // limit at the end of any query
-    if (limit && Number(limit) > 0) {
-      query += ` LIMIT ${Number(limit)}`;
+    const allowedSortedList = ["unitBudget", "name"];
+    if (sortByParam && allowedSortedList.includes(sortByParam)) {
+      // If the user selected a valid column, use it. Default direction to ASC if not provided.
+      const direction = orderParam === "desc" ? "DESC" : "ASC";
+      query += ` ORDER BY "${sortByParam}" ${direction}`;
+    } else {
+      // BETTER WAY FALLBACK: If no sort specified (or invalid), show latest first
+      query += ` ORDER BY created_at DESC`;
     }
 
-    const { rows } = await pool.query(`${query}`);
+    // limit
+    const limitParam =
+      req.query.limit && Number(req.query.limit) > 0
+        ? Number(req.query.limit)
+        : 12;
+
+    query += ` LIMIT $1`;
+    const typeCheck = await pool.query(
+      `SELECT column_name, data_type 
+   FROM information_schema.columns 
+   WHERE table_name = 'projects' 
+     AND LOWER(column_name) = LOWER('unitBudget');`,
+    );
+
+    console.log("Column Details:", typeCheck.rows);
+
+    const { rows } = await pool.query(`${query}`, [limitParam]);
     res.status(200).json({ success: true, data: rows });
   }),
 );
@@ -57,7 +78,6 @@ apiProjectsRouter.post("/", async (req, res) => {
   ];
 
   const { rows } = await pool.query(insertProjectQuery, values);
-
   res
     .status(201)
     .json({ message: "Project created", data: payload, rows: rows[0] });
