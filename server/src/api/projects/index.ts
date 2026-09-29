@@ -5,6 +5,7 @@ import { asyncHandler } from "../../utils/asyncHandler";
 
 const apiProjectsRouter = Router();
 
+
 interface ProjectPayload {
   name: string;
   client: string;
@@ -16,13 +17,18 @@ interface ProjectPayload {
 apiProjectsRouter.get(
   "/",
   asyncHandler(async (req, res) => {
-    // let query = "SELECT * FROM projects";
-    // const { limit, sort } = req.query;
-    // if (limit && Number(limit) > 0) {
-    //   query += ` LIMIT ${Number(limit)}`;
-    // }
+    let query = "SELECT * FROM projects";
+    
+    const { limit, sortBy } = req.query;
 
-    const { rows } = await pool.query("SELECT * FROM projects ORDER BY id ASC");
+    // if(sortBy)
+
+    // limit at the end of any query
+    if (limit && Number(limit) > 0) {
+      query += ` LIMIT ${Number(limit)}`;
+    }
+
+    const { rows } = await pool.query(`${query}`);
     res.status(200).json({ success: true, data: rows });
   }),
 );
