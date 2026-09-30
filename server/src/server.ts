@@ -5,14 +5,19 @@ dotenv.config(); // Call config as early as possible
 import express, { NextFunction, Request, Response } from "express";
 import cors from "cors";
 import morgan from "morgan";
+import swaggerUi from "swagger-ui-express";
+
 import apiRouter from "./api";
 import { errorHandler } from "./middleware/errorHandler";
+import { swaggerSpec } from "./lib/swagger";
 
 const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Global Middleware
 app.use(express.json());
+app.use("/api-docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
+
 app.use(morgan("dev"));
 app.use(
   cors({

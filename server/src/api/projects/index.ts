@@ -18,31 +18,23 @@ apiProjectsRouter.get(
   asyncHandler(async (req, res) => {
     const { category, isFavorite, status, search, sortBy, order, limit } =
       req.query;
-
     let baseQuery = "SELECT * FROM projects";
     const conditions = [];
     const values = [];
 
-    // 1. Category Filter
     if (category) {
       values.push(String(category));
       conditions.push(`category = $${values.length}`);
     }
-
-    // 2. Favorite Filter (handles ?isFavorite=true and ?isFavorite=false)
     if (typeof isFavorite !== "undefined") {
       const isFavBool = String(isFavorite).toLowerCase() === "true";
       values.push(isFavBool);
       conditions.push(`"isFavorite" = $${values.length}`);
     }
-
-    // 3. Status Filter
     if (status) {
       values.push(String(status));
       conditions.push(`status = $${values.length}`);
     }
-
-    // 4. Search Filter (Case-insensitive via ILIKE)
     if (search) {
       values.push(`%${search}%`);
       const searchPlaceholder = `$${values.length}`;
@@ -50,13 +42,10 @@ apiProjectsRouter.get(
         `(name ILIKE ${searchPlaceholder} OR client ILIKE ${searchPlaceholder})`,
       );
     }
-
-    // Attach WHERE clauses if any exist
     if (conditions.length > 0) {
       baseQuery += ` WHERE ${conditions.join(" AND ")}`;
     }
 
-    // 5. Sorting (Allowlist prevents SQL injection)
     const allowedSortedList = ["unitBudget", "name"];
     if (sortBy && allowedSortedList.includes(String(sortBy))) {
       const direction = String(order).toLowerCase() === "desc" ? "DESC" : "ASC";
@@ -65,21 +54,20 @@ apiProjectsRouter.get(
       baseQuery += ` ORDER BY created_at DESC`;
     }
 
-    // 6. Pagination Limit
     const limitNum = Number(limit) > 0 ? Number(limit) : 12;
     values.push(limitNum);
     baseQuery += ` LIMIT $${values.length}`;
-
-    // Execute query with fully parameterized values
     const { rows } = await pool.query(baseQuery, values);
 
     res.status(200).json({ success: true, count: rows.length, data: rows });
   }),
 );
 
-apiProjectsRouter.post("/", async (req, res) => {
-  const payload: ProjectPayload = req.body;
-  const insertProjectQuery = `
+apiProjectsRouter.post(
+  "/",
+  asyncHandler(async (req, res) => {
+    const payload: ProjectPayload = req.body;
+    const insertProjectQuery = `
   INSERT INTO projects (
     name,
     client,
@@ -92,18 +80,74 @@ apiProjectsRouter.post("/", async (req, res) => {
   RETURNING *;
 `;
 
-  const values = [
-    payload.name,
-    payload.client,
-    payload.url,
-    payload.category,
-    payload.unitBudget,
-  ];
+    const values = [
+      payload.name,
+      payload.client,
+      payload.url,
+      payload.category,
+      payload.unitBudget,
+    ];
 
-  const { rows } = await pool.query(insertProjectQuery, values);
-  res
-    .status(201)
-    .json({ message: "Project created", data: payload, rows: rows[0] });
-});
+    const { rows } = await pool.query(insertProjectQuery, values);
+    res
+      .status(201)
+      .json({ message: "Project created", data: payload, rows: rows[0] });
+  }),
+);
+
+apiProjectsRouter.patch(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+    const payload: Partial<ProjectPayload> = req.body;
+
+    const updateProjectQuery = `
+    UPDATE projects
+    SET name = COALESCE($1, name),
+        client = COALESCE($2, client),
+        url = COALESCE($3, url),
+        category = COALESCE($4, category),
+        "unitBudget" = COALESCE($5, "unitBudget")
+    WHERE id = $6
+    RETURNING *;
+  `;
+
+    const values = [
+      payload.name ?? null,
+      payload.client ?? null,
+      payload.url ?? null,
+      payload.category ?? null,
+      payload.unitBudget ?? null,
+      id,
+    ];
+
+    const { rows } = await pool.query(updateProjectQuery, values);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    res.status(200).json({ message: "Project updated", data: rows[0] });
+  }),
+);
+
+apiProjectsRouter.delete(
+  "/:id",
+  asyncHandler(async (req, res) => {
+    const { id } = req.params;
+
+    const deleteProjectQuery = `
+    DELETE FROM projects
+    WHERE id = $1
+    RETURNING *;
+  `;
+
+    const { rows } = await pool.query(deleteProjectQuery, [id]);
+    if (rows.length === 0) {
+      return res.status(404).json({ message: "Project not found" });
+    }
+
+    res.status(200).json({ message: "Project deleted", data: rows[0] });
+  }),
+);
 
 export default apiProjectsRouter;
